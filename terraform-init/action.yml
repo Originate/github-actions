@@ -1,0 +1,44 @@
+name: Terraform Init
+description: Configures a Terraform working directory
+
+inputs:
+  working_directory:
+    required: true
+
+outputs:
+  terraform_workspace:
+    value: ${{ steps.configure-workspace.outputs.terraform_workspace }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Terraform
+      run: |
+        echo "Installing Terraform"
+        curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/release/install.sh | sudo bash
+        LOCAL_BIN="$HOME/.local/bin"
+        grep -Eq "(:|^)$LOCAL_BIN(:|$)" <<< "$PATH" && mkdir -p "$LOCAL_BIN" || exit 1
+        tfswitch --bin "$LOCAL_BIN/terraform"
+      working-directory: ${{ inputs.working_directory }}
+      shell: bash
+
+    - name: Initialize working directory
+      run: terraform init -backend-config="../config/backend_config.tfvars"
+      working-directory: ${{ inputs.working_directory }}
+      shell: bash
+
+    - name: Configure Terraform workspace
+      id: configure-workspace
+      run: |
+        DEPLOY_REF_PREFIX="refs/tags/deployments/"
+        if [ "$(basename '${{ inputs.working_directory }}')" != "environment" ]; then
+          TF_WORKSPACE="default"
+        elif grep -q "^$DEPLOY_REF_PREFIX" <<< "$GITHUB_REF"; then
+          TF_WORKSPACE="$(: "${GITHUB_REF#"$DEPLOY_REF_PREFIX"}"; echo "${_%%/*}")"
+        else
+          TF_WORKSPACE="dev"
+        fi
+        echo "Setting Terraform workspace to '$TF_WORKSPACE'"
+        echo "::set-output name=terraform_workspace::$TF_WORKSPACE"
+        echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
+      shell: bash
