@@ -1,0 +1,25 @@
+name: AWS Configure
+description: Configures a profile for the AWS CLI
+
+inputs:
+  aws_access_key_id:
+    required: true
+  aws_secret_access_key:
+    required: true
+  aws_region:
+    required: true
+  aws_profile:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS credentials
+      run: |
+        echo "Configuring AWS profile '${{ inputs.aws_profile }}'"
+        aws configure set 'profile.${{ inputs.aws_profile }}.aws_access_key_id' '${{ inputs.aws_access_key_id }}'
+        aws configure set 'profile.${{ inputs.aws_profile }}.aws_secret_access_key' '${{ inputs.aws_secret_access_key }}'
+        aws configure set 'profile.${{ inputs.aws_profile }}.region' '${{ inputs.aws_region }}'
+        aws configure set 'profile.${{ inputs.aws_profile }}.output' json
+        echo 'AWS_PROFILE=${{ inputs.aws_profile }}' >> $GITHUB_ENV
+      shell: bash
