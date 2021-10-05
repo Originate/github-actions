@@ -15,6 +15,7 @@ runs:
         else
           echo
           echo 'Formatting issues found, run `terraform fmt` and re-commit'
+          exit 1
         fi
       working-directory: ${{ inputs.working_directory }}
       shell: bash
